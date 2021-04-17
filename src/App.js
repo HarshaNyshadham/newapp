@@ -5,9 +5,27 @@ import { withAuthenticator, AmplifySignOut } from '@aws-amplify/ui-react';
 import { listNotes } from './graphql/queries';
 import { createNote as createNoteMutation, deleteNote as deleteNoteMutation } from './graphql/mutations';
 
+import { ReactExcel, readFile, generateObjects } from '@ramonak/react-excel';
+
 const initialFormState = { name: '', description: '' }
 
 function App() {
+  const [initialData, setInitialData] = useState(undefined);
+  const [currentSheet, setCurrentSheet] = useState({});
+  const [generatedObjects, setGeneratedObjects] = useState([]);
+
+  const handleUpload = (event) => {
+    const file = event.target.files[0];
+    readFile(file)
+      .then((readedData) => setInitialData(readedData))
+      .catch((error) => console.error(error));
+  };
+
+  const handleClick = () => {
+    const result = generateObjects(currentSheet);
+    setGeneratedObjects(result);
+  };
+
   const [notes, setNotes] = useState([]);
   const [formData, setFormData] = useState(initialFormState);
 
@@ -35,7 +53,43 @@ function App() {
 
   return (
     <div className="App">
-      <h1>My Notes App</h1>
+    <h1>Page header</h1>
+      <input
+        type='file'
+        accept='.xlsx'
+        onChange={handleUpload}
+        id='upload'
+        style={{ display: 'none' }}
+      />
+      <label htmlFor='upload'>
+        <button
+          className='custom-button'
+          onClick={() => document.getElementById('upload').click()}
+        >
+          Upload
+        </button>
+      </label>
+      <ReactExcel
+        initialData={initialData}
+        onSheetUpdate={(currentSheet) => setCurrentSheet(currentSheet)}
+        activeSheetClassName='active-sheet'
+        reactExcelClassName='react-excel'
+      />
+      {initialData && (
+        <button className='custom-button' onClick={handleClick}>
+          Match
+        </button>
+      )}
+      {generatedObjects.length > 0 && (
+        <textarea
+          cols={70}
+          rows={30}
+          value={JSON.stringify(generatedObjects, null, 2)}
+          readOnly
+          className='text-area'
+        />
+      )}
+      <h1>Notes for app</h1>
       <input
         onChange={e => setFormData({ ...formData, 'name': e.target.value})}
         placeholder="Note name"
